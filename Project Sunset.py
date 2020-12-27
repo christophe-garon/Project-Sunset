@@ -505,13 +505,13 @@ exec(open(filename).read())
 try:
     msg = EmailMessage()
     msg['Subject'] = 'Sunset Prediction'
-    msg['From'] = 'Christophe <nnoraggaronn@gmail.com>'
+    msg['From'] = 'Christophe <{}>'.format(send_email)
     msg['To'] = user_email
     msg.set_content("The sun sets in one hour. It's predicted to be rated a "+ predicted_sunset+ " on a (1 to 4) scale.")
 
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:      
 
-        smtp.login('nnoraggaronn@gmail.com', 'gacyabh.met')
+        smtp.login(send_email,send_password)
 
         smtp.send_message(msg)
 
