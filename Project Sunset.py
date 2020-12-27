@@ -85,17 +85,19 @@ def get_twitter_auth(consumer_key, consumer_secret):
     
 
 
-# In[103]:
+# In[143]:
 
 
 # Import existing user data or create new user if no user file exists
 
 try:
     user = pd.read_csv("user.csv", index_col=0)
-    country = user['country']
+    country = user['country'][0]
     zip_code = str(user.iloc[0,1])
-    lat = user['lat']
-    long = user['long']
+    nomi = pgeocode.Nominatim(country)
+    cord = nomi.query_postal_code([zip_code])
+    lat = float(cord['latitude'])
+    long = float(cord['longitude'])
     owm_key = user['owm api key']
     wb_key = user['wb api key']
     user_email = user['user email']
@@ -146,9 +148,9 @@ except IOError:
     
     # create user dataframe
     col = {
-        "country":country, "zip code":zip_code, "user email":user_email, "lat":lat,"long":long, "owm api key":owm_key, "wb api key":wb_key, 
-        "consumer key":consumer_key, "consumer secret":consumer_secret, "access token":access_token, "access token secret":access_token_secret,
-        "send email":send_email, "send password":send_password}
+        "country":country, "zip code":zip_code, "user email":user_email, "owm api key":owm_key, "wb api key":wb_key, 
+        "consumer key":consumer_key, "consumer secret":consumer_secret, "access token":access_token, 
+        "access token secret":access_token_secret, "send email":send_email, "send password":send_password}
 
     user = pd.DataFrame(col, index= [start_date])
     user.to_csv("user.csv", encoding='utf-8', index=True)
