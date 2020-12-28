@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[100]:
+# In[57]:
 
 
 # Required Imports
@@ -26,7 +26,7 @@ import smtplib
 from email.message import EmailMessage
 
 
-# In[101]:
+# In[58]:
 
 
 # Country, zip code, and email input functions for first time users
@@ -69,7 +69,7 @@ def get_email():
             print("Hmmm... " + answer + " is not a valid answer. Let's try that again.")
 
 
-# In[102]:
+# In[59]:
 
 
 def get_twitter_auth(consumer_key, consumer_secret):
@@ -85,7 +85,7 @@ def get_twitter_auth(consumer_key, consumer_secret):
     
 
 
-# In[143]:
+# In[60]:
 
 
 # Import existing user data or create new user if no user file exists
@@ -93,20 +93,20 @@ def get_twitter_auth(consumer_key, consumer_secret):
 try:
     user = pd.read_csv("user.csv", index_col=0)
     country = user['country'][0]
-    zip_code = str(user.iloc[0,1])
+    zip_code = str(user['zip code'][0])
     nomi = pgeocode.Nominatim(country)
     cord = nomi.query_postal_code([zip_code])
     lat = float(cord['latitude'])
     long = float(cord['longitude'])
-    owm_key = user['owm api key']
-    wb_key = user['wb api key']
-    user_email = user['user email']
-    consumer_key = user['consumer key']
-    consumer_secret = user['consumer secret']
-    access_token = user['access token']
-    access_token_secret = user['access token secret']
-    send_email = user['send email']
-    send_password = user['send password']
+    owm_key = user['owm api key'][0]
+    wb_key = user['wb api key'][0]
+    user_email = user['user email'][0]
+    consumer_key = user['consumer key'][0]
+    consumer_secret = user['consumer secret'][0]
+    access_token = user['access token'][0]
+    access_token_secret = user['access token secret'][0]
+    send_email = user['send email'][0]
+    send_password = user['send password'][0]
        
 except IOError:
     
@@ -148,15 +148,15 @@ except IOError:
     
     # create user dataframe
     col = {
-        "country":country, "zip code":zip_code, "user email":user_email, "owm api key":owm_key, "wb api key":wb_key, 
-        "consumer key":consumer_key, "consumer secret":consumer_secret, "access token":access_token, 
-        "access token secret":access_token_secret, "send email":send_email, "send password":send_password}
+        "country":country, "zip code":zip_code, "user email":user_email, "lat":lat,"long":long, "owm api key":owm_key, "wb api key":wb_key, 
+        "consumer key":consumer_key, "consumer secret":consumer_secret, "access token":access_token, "access token secret":access_token_secret,
+        "send email":send_email, "send password":send_password}
 
     user = pd.DataFrame(col, index= [start_date])
     user.to_csv("user.csv", encoding='utf-8', index=True)
 
 
-# In[104]:
+# In[61]:
 
 
 # Create function to call Open Weather Map API later and call now
@@ -173,7 +173,7 @@ def owm():
 data = owm()
 
 
-# In[106]:
+# In[62]:
 
 
 # Current Time
@@ -182,19 +182,29 @@ def current_time():
     current_time = t.strftime("%H:%M")
     return current_time
 
+
+def convert_time(time):
+    if time > '12:59':
+        converted_time = str(int(time[0:2]) - 12) + time[2:]
+    return converted_time
+
 # Sunset Time
 unix_timestamp = int(data['sys']['sunset'])
 utc_time = datetime.fromtimestamp(unix_timestamp, timezone.utc)
 local_time = utc_time.astimezone()
 sunset_time = local_time.strftime("%H:%M")
+converted_sunset_time = convert_time(sunset_time)
 
 
 # Determine Run Time (Run Time = Sunset Time - 1 Hour) 
 hour = '01:00'
 format = '%H:%M'
 rt = str(datetime.strptime(sunset_time, format) - datetime.strptime(hour, format))
-run_time =rt[:5]
-print("One of our agents will send you a sunset prediction at "+run_time)
+run_time = rt[:5]
+
+converted_run_time = convert_time(sunset_time)
+
+print("One of our agents will send you a sunset prediction at "+ converted_run_time)
 
 
 # In[107]:
@@ -206,7 +216,7 @@ while current_time() != run_time:
     time.sleep(60) # wait one minute 
 
 
-# In[108]:
+# In[63]:
 
 
 # Extract needed metrics from the Open Weather Map API as variables
@@ -223,7 +233,7 @@ wind_speed = data['wind']['speed']
 clouds = data['clouds']['all']
 
 
-# In[109]:
+# In[64]:
 
 
 #WeatherBit API
@@ -244,13 +254,13 @@ for d in wb_data['data']:
     dni = d['dni']
 
 
-# In[110]:
+# In[65]:
 
 
 #Create a DataFrame of today's metrics
 
 # Current Date
-date = date.today().strftime('%Y-%m-%d')
+current_date = date.today().strftime('%Y-%m-%d')
 
 #Creating columns names and adding their data
 col = {
@@ -273,10 +283,10 @@ col = {
 }
 
 # Putting data together in DataFrame called 'update'
-update = pd.DataFrame(col, index = [date])
+update = pd.DataFrame(col, index = [current_date])
 
 
-# In[111]:
+# In[66]:
 
 
 # Open csv file of all past sunset data or create one if first-time user
@@ -289,7 +299,7 @@ except IOError:
 legacy
 
 
-# In[112]:
+# In[67]:
 
 
 # Function that will call the Twitter API
@@ -302,7 +312,7 @@ def get_twitter():
     return api
 
 
-# In[113]:
+# In[68]:
 
 
 # Function that initiates the rating process
@@ -367,7 +377,7 @@ def rating():
     print('Thanks for the Data!') 
 
 
-# In[114]:
+# In[69]:
 
 
 # Drop any rows from legacy Dataframe without sunset ratings and count total rows
@@ -380,7 +390,7 @@ if data_count < 8:
     print("We need at least 8 entries to start making predictions. We have " + str(data_count) + ", but we're getting there!")
     
     api = get_twitter()
-    status = api.update_status("The sun sets in one hour. We need at least 8 entries to start making predictions. We have " + str(data_count) + ", but we're getting there!")
+    status = api.update_status("The sun sets at {}. We need at least 8 entries to start making predictions. We have {}, but we're getting there!".format(converted_sunset_time,str(data_count)))
     
     rating()
     
@@ -390,7 +400,7 @@ if data_count < 8:
     exec(open(filename).read())
 
 
-# In[118]:
+# In[70]:
 
 
 # Creating ODL Regression model
@@ -401,7 +411,7 @@ x = legacy_cleaned[['Temp (°F)', 'Pressure (hPa)', 'Humidity (%)', 'Visibility 
 y = legacy_cleaned['Sunset Rating (1-4)']
 
 
-# In[119]:
+# In[71]:
 
 
 # Scaling data for better comparison
@@ -472,7 +482,7 @@ predicted_sunset = str(round(predicted_sunset[0]))
 
 # Add this predicted rating to the DataFrame and printout the rating
 update['Predicted Sunset Rating'] = predicted_sunset
-print("The sun sets at " + sunset_time + ". It's predicted to be rated a " + predicted_sunset + " on the scale (1 to 4)")
+print("The sun sets at {}. It's predicted to be rated a {} on the scale (1 to 4)".format(converted_sunset_time, predicted_sunset))
 
 
 # In[ ]:
@@ -480,7 +490,7 @@ print("The sun sets at " + sunset_time + ". It's predicted to be rated a " + pre
 
 #Tweet out the sunset prediction
 api = get_twitter()
-status = api.update_status("The sun sets in one hour. It's predicted to be rated a " + predicted_sunset + " on the scale (1 to 4). Reply to this tweet with your ratings!")
+status = api.update_status("The sun sets at {}. It's predicted to be rated a {} on the scale (1 to 4). Reply to this tweet with your ratings!".format(converted_sunset_time, predicted_sunset))
 
 
 # In[ ]:
@@ -499,7 +509,7 @@ time.sleep(5)
 exec(open(filename).read())
 
 
-# In[127]:
+# In[77]:
 
 
 # Optional: email yourself the prediction
