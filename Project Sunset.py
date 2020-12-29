@@ -24,6 +24,8 @@ import sys
 from statistics import mean
 import smtplib
 from email.message import EmailMessage
+import caffeine
+caffeine.on(display=True)
 
 
 # In[58]:
