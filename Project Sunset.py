@@ -74,6 +74,7 @@ def get_email():
 # In[59]:
 
 
+#function that gets Twitter access_token and access_token_secret
 def get_twitter_auth(consumer_key, consumer_secret):
     callback_uri = 'oob'
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret, callback_uri)
@@ -184,7 +185,7 @@ def current_time():
     current_time = t.strftime("%H:%M")
     return current_time
 
-
+# Function that converts military time to regular time
 def convert_time(time):
     if time > '12:59':
         converted_time = str(int(time[0:2]) - 12) + time[2:]
@@ -204,9 +205,10 @@ format = '%H:%M'
 rt = str(datetime.strptime(sunset_time, format) - datetime.strptime(hour, format))
 run_time = rt[:5]
 
+#convert the time to normal time for user
 converted_run_time = convert_time(sunset_time)
 
-print("One of our agents will send you a sunset prediction at "+ converted_run_time)
+print("One of our agents will send you a sunset prediction tonight at "+ converted_run_time)
 
 
 # In[107]:
@@ -223,7 +225,7 @@ while current_time() != run_time:
 
 # Extract needed metrics from the Open Weather Map API as variables
 
-#Get Updated Metrics
+# Call OWM API to get latest Metrics
 data = owm()
 
 #Convert temp to °F and round
@@ -349,7 +351,7 @@ def rating():
     for m in mentions:
         if status_id in str(m.in_reply_to_status_id):
             try: 
-                tweet =  float(m.text[9:])
+                tweet =  float(m.text[14:])
                 if 1 <= tweet <= 4:
                     ratings.append(tweet)
         
@@ -389,10 +391,10 @@ data_count = len(legacy_cleaned.index)
 #Check to see if we have at least 8 ratings so we can make a prediction 
 if data_count < 8:
     
-    print("We need at least 8 entries to start making predictions. We have " + str(data_count) + ", but we're getting there!")
+    print("The sun sets at {}. We need at least 8 entries to start making predictions. We have {}, but we're getting there. Reply to this tweet with your rating so I can learn!".format(converted_sunset_time,str(data_count)))
     
     api = get_twitter()
-    status = api.update_status("The sun sets at {}. We need at least 8 entries to start making predictions. We have {}, but we're getting there!".format(converted_sunset_time,str(data_count)))
+    status = api.update_status("The sun sets at {}. We need at least 8 entries to start making predictions. We have {}, but we're getting there. Reply to this tweet with your rating so I can learn!".format(converted_sunset_time,str(data_count)))
     
     rating()
     
@@ -490,6 +492,28 @@ print("The sun sets at {}. It's predicted to be rated a {} on the scale (1 to 4)
 # In[ ]:
 
 
+# Optional: email the prediction
+
+try:
+    msg = EmailMessage()
+    msg['Subject'] = 'Sunset Prediction'
+    msg['From'] = 'Christophe <{}>'.format(send_email)
+    msg['To'] = user_email
+    msg.set_content("The sun sets in one hour. It's predicted to be rated a "+ predicted_sunset+ " on a (1 to 4) scale.")
+
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:      
+
+        smtp.login(send_email,send_password)
+
+        smtp.send_message(msg)
+
+except IOError:
+    pass
+
+
+# In[ ]:
+
+
 #Tweet out the sunset prediction
 api = get_twitter()
 status = api.update_status("The sun sets at {}. It's predicted to be rated a {} on the scale (1 to 4). Reply to this tweet with your ratings!".format(converted_sunset_time, predicted_sunset))
@@ -509,28 +533,6 @@ rating()
 filename = sys.argv[0]
 time.sleep(5)
 exec(open(filename).read())
-
-
-# In[77]:
-
-
-# Optional: email yourself the prediction
-
-try:
-    msg = EmailMessage()
-    msg['Subject'] = 'Sunset Prediction'
-    msg['From'] = 'Christophe <{}>'.format(send_email)
-    msg['To'] = user_email
-    msg.set_content("The sun sets in one hour. It's predicted to be rated a "+ predicted_sunset+ " on a (1 to 4) scale.")
-
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:      
-
-        smtp.login(send_email,send_password)
-
-        smtp.send_message(msg)
-
-except IOError:
-    pass
 
 
 # In[ ]:
